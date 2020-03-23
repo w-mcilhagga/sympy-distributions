@@ -15,8 +15,6 @@ class RandomVar:
 class Binomial(sp.Symbol, RandomVar):
     def __new__(cls, name, p=sp.Symbol('p'), n=sp.Symbol('n')):
         bv = sp.Symbol.__new__(cls,name,positive=True)
-        p._assumptions['positive']=True
-        n._assumptions['positive']=True
         bv.p = p
         bv.n = n
         return bv
@@ -92,10 +90,10 @@ MGF = {
     Poisson: lambda y, t: sp.exp(y._lambda* (sp.exp(t)-1)),
     NegativeBinomial: lambda y, t: ((1-y.p)/(1-y.p*sp.exp(t)))**y.r,
     Geometric: lambda y, t: y.p*sp.exp(t)/(1-(1-y.p)*sp.exp(t)),
-    Uniform: lambda y, t: (sp.exp(t*y.b)-sp.exp(t*y.a))/(t*(y.b-y.a)),
-    ChiSquared: lambda y, t: (1-2*t)**(-y.k/2),
     Gamma: lambda y, t: (1-t*y.theta)**(-y.k),
-    InverseGaussian: lambda y, t: sp.exp(y._lambda/y.mu*(1-sp.sqrt(1-2*y.mu**2*t/y._lambda)))
+    InverseGaussian: lambda y, t: sp.exp(y._lambda/y.mu*(1-sp.sqrt(1-2*y.mu**2*t/y._lambda))),
+    Uniform: lambda y, t: (sp.exp(t*y.b)-sp.exp(t*y.a))/(t*(y.b-y.a)),
+    ChiSquared: lambda y, t: (1-2*t)**(-y.k/2)
 }
 
 PDF = {
@@ -104,9 +102,9 @@ PDF = {
     Poisson: lambda y: y._lambda**y*sp.exp(-y._lambda)/factorial(y),
     NegativeBinomial: lambda y: binomial(y+y.r-1,y)*(1-y.p)**y.r*y.p**y,
     Geometric: lambda y: (1-y.p)*(y-1)*y.p,
-    Uniform: lambda y: 1/(y.b-y.a),
     Gamma: lambda y: y**(y.k-1)*sp.exp(-y/y.theta)/(y.theta**y*gamma(y)),
-    InverseGaussian: lambda y: sp.sqrt(y._lambda/(2*sp.pi*y**3))*sp.exp(-y._lambda*(y-y.mu)**2/(2*y.mu**2*y))
+    InverseGaussian: lambda y: sp.sqrt(y._lambda/(2*sp.pi*y**3))*sp.exp(-y._lambda*(y-y.mu)**2/(2*y.mu**2*y)),
+    Uniform: lambda y: 1/(y.b-y.a)
 }
 
 def E(expr):
@@ -129,7 +127,7 @@ def E(expr):
         if cls == sp.Mul:
             return sp.Mul(*[expected(elem) for elem in expr.args])
         if cls == sp.Pow and isinstance(expr.args[0],RandomVar):
-            if not expr.args[1].is_integer:
+            if (not expr.args[1].is_integer):
                 raise Exception("Can't do expected values of non-integer powers")                
             if expr.args[1]<0:
                 raise Exception("Can't do expected values of negative powers (including division)")
